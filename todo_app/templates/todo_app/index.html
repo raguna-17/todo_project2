@@ -1,0 +1,44 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Todoapp</title>
+    <!-- defer を付けると DOMContentLoaded 前に実行されない。順序は書いた順 -->
+    <script defer src="{% static 'js/auth.js' %}"></script>
+    <script defer src="{% static 'js/tasks.js' %}"></script>
+</head>
+
+<body>
+    <h1>ToDoアプリ</h1>
+
+    <!-- タスク追加フォーム -->
+    <form id="task-form">
+        <input type="text" id="title" placeholder="タスク名" required>
+        <input type="datetime-local" id="deadline" required>
+        <select id="priority">
+            <option value="L">Low</option>
+            <option value="M" selected>Medium</option>
+            <option value="H">High</option>
+        </select>
+        <button type="submit">追加</button>
+    </form>
+
+    <h2>タスク一覧</h2>
+    <ul id="task-list"></ul>
+
+    <script>
+        (async () => {
+            // トークンが既にあるなら fetchTasks を呼ぶ
+            const token = localStorage.getItem('accessToken');
+            if (token && typeof fetchTasks === 'function') {
+                await fetchTasks();
+            }
+            // ログイン処理をここで呼ぶなら await login(...) の後に fetchTasks()
+        })();
+    </script>
+    
+</body>
+
+</html>

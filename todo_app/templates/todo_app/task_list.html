@@ -1,0 +1,8 @@
+<!-- templates/task_list.html -->
+<ul id="task-list">
+    {% for task in tasks %}
+    <li>{{ task.title }} - {{ task.description }}</li>
+    {% endfor %}
+</ul>
+<button id="add-task">タスク追加</button>
+<script src="{% static 'js/tasks.js' %}"></script>

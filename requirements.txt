@@ -1,0 +1,6 @@
+#requirements.txt
+Django>=4.2
+djangorestframework
+djangorestframework-simplejwt
+celery[redis]
+redis
