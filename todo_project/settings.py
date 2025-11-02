@@ -1,31 +1,28 @@
 """
-Django settings for todo_project project.
-
-Production-ready defaults (suitable for Render).
-Environment variables expected:
+Production-ready settings for Render-like environments.
+Environment variables used:
  - DJANGO_SECRET_KEY
  - DJANGO_DEBUG ("True" or "False")
- - ALLOWED_HOSTS (comma separated, e.g. "example.com,api.example.com")
- - DATABASE_URL (optional)
- - CORS_ALLOW_ALL_ORIGINS ("True" or "False")
+ - ALLOWED_HOSTS (comma separated)
+ - TIME_ZONE
 """
 
 import os
 from pathlib import Path
 from datetime import timedelta
 
-# BASE_DIR
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev-secret-key-change-me')
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
-# default hosts: localhost for dev, allow overriding via env var
-default_hosts = ['localhost', '127.0.0.1']
-env_hosts = os.environ.get('ALLOWED_HOSTS', '')
-ALLOWED_HOSTS = [h for h in (env_hosts.split(',') if env_hosts else default_hosts)]
 
-# Application definition
+# ALLOWED_HOSTS: trim whitespace and ignore empty
+env_hosts = os.environ.get('ALLOWED_HOSTS', '')
+if env_hosts:
+    ALLOWED_HOSTS = [h.strip() for h in env_hosts.split(',') if h.strip()]
+else:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -39,15 +36,14 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
 
-    # local apps
+    # local
     'todo_app',
 ]
 
-# Middleware: WhiteNoise should be just after SecurityMiddleware
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',          # serves static files
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # must be after SecurityMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -61,13 +57,12 @@ ROOT_URLCONF = 'todo_project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        # if you keep templates in app directories, APP_DIRS True is fine.
         'DIRS': [ BASE_DIR / 'templates' ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
-                'django.template.context_processors.request',  # required by admin
+                'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -76,8 +71,8 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'todo_project.wsgi.application'
+ASGI_APPLICATION = 'todo_project.asgi.application'
 
-# Database: default sqlite, but allow overriding with DATABASE_URL (optional)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -85,14 +80,6 @@ DATABASES = {
     }
 }
 
-# Optional: if you want to use an environment DATABASE_URL (e.g. postgres),
-# install dj-database-url and uncomment the lines below and add to requirements.
-# import dj_database_url
-# db_url = os.environ.get('DATABASE_URL')
-# if db_url:
-#     DATABASES['default'] = dj_database_url.parse(db_url, conn_max_age=600)
-
-# Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
@@ -100,7 +87,6 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
 ]
 
-# REST Framework & JWT
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -117,22 +103,22 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = os.environ.get('TIME_ZONE', 'UTC')
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
+# STATIC: ensure string path and safe storage for first deploy
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'              # collectstatic -> here
-STATICFILES_DIRS = [ BASE_DIR / 'static' ]          # optional: local static folder
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATIC_ROOT = str(BASE_DIR / 'staticfiles')   # important: filesystem path
+_static_dir = BASE_DIR / 'static'
+STATICFILES_DIRS = [ str(_static_dir) ] if _static_dir.exists() else []
+# Use compressed storage that doesn't require manifest hashes initially
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
-# Media (if you use)
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = str(BASE_DIR / 'media')
 
 # CORS
 CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'False') == 'True'
@@ -140,13 +126,11 @@ from corsheaders.defaults import default_headers
 CORS_ALLOW_HEADERS = list(default_headers) + ['authorization',]
 CORS_ALLOW_METHODS = ['GET','POST','PUT','PATCH','DELETE','OPTIONS']
 
-# Sessions / cookies – tune if needed
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
-# Logging (simple console logging for Render)
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -162,9 +146,4 @@ LOGGING = {
     },
 }
 
-# Default primary key
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Celery (if used) - keep as defaults; configure in env if deploying
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', CELERY_BROKER_URL)
