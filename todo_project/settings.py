@@ -10,6 +10,7 @@ Environment variables used:
 import os
 from pathlib import Path
 from datetime import timedelta
+from corsheaders.defaults import default_headers
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -121,9 +122,17 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = str(BASE_DIR / 'media')
 
 # CORS
-CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'False') == 'True'
-from corsheaders.defaults import default_headers
-CORS_ALLOW_HEADERS = list(default_headers) + ['authorization',]
+# 全オリジンを許可するのではなく、特定のオリジンだけ許可
+CORS_ALLOWED_ORIGINS = [
+    "https://todo-project2.onrender.com",# フロントのURL
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",  
+]
+
+# ヘッダー許可
+CORS_ALLOW_HEADERS = list(default_headers) + ['authorization']
+
+# メソッド許可
 CORS_ALLOW_METHODS = ['GET','POST','PUT','PATCH','DELETE','OPTIONS']
 
 SESSION_COOKIE_SECURE = not DEBUG
@@ -147,3 +156,5 @@ LOGGING = {
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+

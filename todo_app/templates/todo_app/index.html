@@ -1,11 +1,13 @@
+<!-- todo_app/index.html -->
+
 {% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 
 <head>
     <meta charset="utf-8">
-    <title>Todoapp</title>
-    <!-- defer を付けると DOMContentLoaded 前に実行されない。順序は書いた順 -->
+    <title>Todoアプリ</title>
+    <!-- JSファイルは defer で読み込み、DOMContentLoaded後に実行 -->
     <script defer src="{% static 'js/auth.js' %}"></script>
     <script defer src="{% static 'js/tasks.js' %}"></script>
 </head>
@@ -28,17 +30,29 @@
     <h2>タスク一覧</h2>
     <ul id="task-list"></ul>
 
+    <div id="error-box" style="color:red; margin:10px 0;"></div>
+
     <script>
-        (async () => {
-            // トークンが既にあるなら fetchTasks を呼ぶ
+        document.addEventListener('DOMContentLoaded', async () => {
             const token = localStorage.getItem('accessToken');
-            if (token && typeof fetchTasks === 'function') {
-                await fetchTasks();
+
+            if (!token) {
+                console.warn('アクセストークンがありません。ログインページにリダイレクトします。');
+                window.location.href = '/login/'; // ログインページに誘導
+                return;
             }
-            // ログイン処理をここで呼ぶなら await login(...) の後に fetchTasks()
-        })();
+
+            if (typeof fetchTasks === 'function') {
+                try {
+                    await fetchTasks();
+                } catch (err) {
+                    console.error('タスク取得中にエラーが発生しました', err);
+                    const el = document.getElementById('error-box');
+                    el.textContent = 'タスクを取得できませんでした。再読み込みしてください。';
+                }
+            }
+        });
     </script>
-    
 </body>
 
 </html>

@@ -1,8 +1,14 @@
-<!-- templates/task_list.html -->
-<ul id="task-list">
-    {% for task in tasks %}
-    <li>{{ task.title }} - {{ task.description }}</li>
-    {% endfor %}
-</ul>
-<button id="add-task">タスク追加</button>
-<script src="{% static 'js/tasks.js' %}"></script>
+<!-- todo_app/task_list.html -->
+<ul id="task-list"></ul>
+<form id="task-form">
+    <input type="text" id="title" placeholder="タスク名" required>
+    <input type="datetime-local" id="deadline" required>
+    <select id="priority">
+        <option value="L">Low</option>
+        <option value="M" selected>Medium</option>
+        <option value="H">High</option>
+    </select>
+    <button type="submit">追加</button>
+</form>
+
+<script defer src="{% static 'js/tasks.js' %}"></script>
