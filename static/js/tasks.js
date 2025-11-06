@@ -1,80 +1,12 @@
-// js/tasks.js (安全・レンダー対応版)
+// static/js/tasks.js
+
 (() => {
     if (window.__todo_tasks_js_loaded) return;
     window.__todo_tasks_js_loaded = true;
 
-    // 環境ごとのAPI URL
-    const API_URLS = {
-        local: 'http://127.0.0.1:8000/api/tasks/',
-        render: 'https://todo-project2.onrender.com/api/tasks/',
-    };
-    const TOKEN_URLS = {
-        local: 'http://127.0.0.1:8000/api/token/refresh/',
-        render: 'https://todo-project2.onrender.com/api/token/refresh/',
-    };
-
-    // ホストに応じて選択
-    const isLocal = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
-    const API_URL = isLocal ? API_URLS.local : API_URLS.render;
-    const TOKEN_URL = isLocal ? TOKEN_URLS.local : TOKEN_URLS.render;
-
+    const API_URL = '/api/tasks/';
     const taskListEl = document.getElementById('task-list');
     const formEl = document.getElementById('task-form');
-
-    // ===============================
-    // ユーティリティ
-    // ===============================
-    function getAccessToken() {
-        return localStorage.getItem('accessToken') || null;
-    }
-
-    async function refreshAccessToken() {
-        const refresh = localStorage.getItem('refreshToken');
-        if (!refresh) return false;
-        try {
-            const res = await fetch(TOKEN_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ refresh })
-            });
-            if (!res.ok) return false;
-            const data = await res.json();
-            localStorage.setItem('accessToken', data.access);
-            console.info('Access token refreshed');
-            return true;
-        } catch (e) {
-            console.error('refresh failed', e);
-            return false;
-        }
-    }
-
-    async function apiFetch(url, opts = {}) {
-        const token = getAccessToken();
-        opts.headers = Object.assign({}, opts.headers || {}, { 'Content-Type': 'application/json' });
-        if (token) opts.headers['Authorization'] = `Bearer ${token}`;
-
-        const doFetch = async (retry = true) => {
-            try {
-                const res = await fetch(url, opts);
-                if (res.status === 401 && retry) {
-                    const ok = await refreshAccessToken();
-                    if (!ok) return res;
-                    opts.headers['Authorization'] = `Bearer ${localStorage.getItem('accessToken')}`;
-                    return doFetch(false);
-                }
-                return res;
-            } catch (err) {
-                console.error('apiFetch network error', err);
-                throw err;
-            }
-        };
-        return doFetch(true);
-    }
-
-    async function safeJson(res) {
-        const text = await res.text();
-        try { return JSON.parse(text); } catch { return text; }
-    }
 
     function showError(msg) {
         let el = document.getElementById('error-box');
@@ -88,59 +20,57 @@
         el.textContent = msg;
     }
 
-    async function handleUnauthorized() {
-        console.warn('Unauthorized: token invalid or missing.');
-        const refreshed = await refreshAccessToken();
-        if (!refreshed) {
-            showError('認証が切れました。再ログインしてください。');
-            window.location.href = '/login/'; // ログインページに誘導
-        }
-    }
-
-    function escapeHtml(s = '') {
-        return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-    }
-
-    // ===============================
-    // タスク操作
-    // ===============================
     async function fetchTasks() {
-        const token = getAccessToken();
-        if (!token) { await handleUnauthorized(); return []; }
-
         try {
             const res = await apiFetch(API_URL, { method: 'GET' });
-            if (!res.ok) {
-                const data = await safeJson(res);
-                console.error('fetchTasks failed', res.status, data);
+            if (res.status === 401) {
+                showError('認証が切れました。再ログインしてください。');
+                window.location.href = '/login/';
                 return [];
             }
-
-            const data = await safeJson(res);
-            if (!Array.isArray(data)) return [];
-
-            if (!taskListEl) return data;
-
-            taskListEl.innerHTML = '';
-            data.forEach(task => {
-                const li = document.createElement('li');
-                const dl = task.deadline ? new Date(task.deadline).toLocaleString() : '';
-                li.innerHTML = `<input type="checkbox" ${task.completed ? 'checked' : ''} data-id="${task.id}"> ${escapeHtml(task.title)} (${escapeHtml(task.priority)}) - ${dl}`;
-                taskListEl.appendChild(li);
-            });
-
+            if (!res.ok) {
+                const body = await safeJson(res);
+                console.error('fetchTasks failed', res.status, body);
+                showError('タスクを取得できませんでした。');
+                return [];
+            }
+            const data = await res.json();
+            if (!Array.isArray(data)) {
+                console.warn('unexpected tasks response', data);
+                return [];
+            }
+            renderTaskList(data);
             return data;
         } catch (err) {
             console.error('fetchTasks error', err);
+            showError('ネットワークエラーが発生しました。');
             return [];
         }
     }
 
+    function renderTaskList(tasks) {
+        if (!taskListEl) return;
+        taskListEl.innerHTML = '';
+        tasks.forEach(task => {
+            const li = document.createElement('li');
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.dataset.id = task.id;
+            checkbox.checked = !!task.completed;
+
+            const titleSpan = document.createElement('span');
+            const dl = task.deadline ? new Date(task.deadline).toLocaleString() : '';
+            titleSpan.textContent = ` ${task.title} (${task.priority}) - ${dl}`;
+
+            li.appendChild(checkbox);
+            li.appendChild(titleSpan);
+            taskListEl.appendChild(li);
+        });
+    }
+
     async function handleFormSubmit(e) {
         e.preventDefault();
-        const token = getAccessToken();
-        if (!token) return handleUnauthorized();
-
         const title = document.getElementById('title')?.value.trim() || '';
         const deadlineRaw = document.getElementById('deadline')?.value || '';
         const priority = document.getElementById('priority')?.value || '';
@@ -151,14 +81,17 @@
 
         try {
             const res = await apiFetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-            const body = await safeJson(res);
-
-            if (res.status === 401) { await handleUnauthorized(); return; }
-            if (!res.ok) {
-                alert('タスク追加に失敗しました: ' + JSON.stringify(body));
+            if (res.status === 401) {
+                showError('認証が切れました。再ログインしてください。');
+                window.location.href = '/login/';
                 return;
             }
-
+            const body = await safeJson(res);
+            if (!res.ok) {
+                console.error('create failed', res.status, body);
+                alert('タスク追加に失敗しました: ' + (body.detail || JSON.stringify(body)));
+                return;
+            }
             formEl?.reset();
             await fetchTasks();
         } catch (err) {
@@ -168,25 +101,24 @@
     }
 
     async function handleTaskToggle(e) {
-        if (e.target.type !== 'checkbox') return;
+        if (!e.target || e.target.type !== 'checkbox') return;
         const id = e.target.dataset.id;
-        const token = getAccessToken();
-        if (!token) return handleUnauthorized();
-
         try {
             const res = await apiFetch(API_URL + id + '/', {
                 method: 'PATCH',
                 body: JSON.stringify({ completed: e.target.checked })
             });
-            if (!res.ok) console.error('patch failed', res.status, await safeJson(res));
+            if (!res.ok) {
+                const body = await safeJson(res);
+                console.error('patch failed', res.status, body);
+                showError('タスク更新に失敗しました');
+            }
         } catch (err) {
             console.error('handleTaskToggle error', err);
+            showError('ネットワークエラーが発生しました');
         }
     }
 
-    // ===============================
-    // DOM 初期化
-    // ===============================
     document.addEventListener('DOMContentLoaded', async () => {
         formEl?.addEventListener('submit', handleFormSubmit);
         taskListEl?.addEventListener('change', handleTaskToggle);
@@ -194,5 +126,5 @@
     });
 
     window.fetchTasks = fetchTasks;
-    window.apiFetch = apiFetch;
 })();
+

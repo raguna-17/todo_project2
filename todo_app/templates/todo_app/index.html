@@ -7,15 +7,14 @@
 <head>
     <meta charset="utf-8">
     <title>Todoアプリ</title>
-    <!-- JSファイルは defer で読み込み、DOMContentLoaded後に実行 -->
     <script defer src="{% static 'js/auth.js' %}"></script>
+    <script defer src="{% static 'js/api.js' %}"></script>
     <script defer src="{% static 'js/tasks.js' %}"></script>
 </head>
 
 <body>
     <h1>ToDoアプリ</h1>
 
-    <!-- タスク追加フォーム -->
     <form id="task-form">
         <input type="text" id="title" placeholder="タスク名" required>
         <input type="datetime-local" id="deadline" required>
@@ -33,23 +32,12 @@
     <div id="error-box" style="color:red; margin:10px 0;"></div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
+        // トークンが無ければログインページへ（fetchTasksの呼び出しは tasks.js に任せる）
+        document.addEventListener('DOMContentLoaded', () => {
             const token = localStorage.getItem('accessToken');
-
             if (!token) {
                 console.warn('アクセストークンがありません。ログインページにリダイレクトします。');
-                window.location.href = '/login/'; // ログインページに誘導
-                return;
-            }
-
-            if (typeof fetchTasks === 'function') {
-                try {
-                    await fetchTasks();
-                } catch (err) {
-                    console.error('タスク取得中にエラーが発生しました', err);
-                    const el = document.getElementById('error-box');
-                    el.textContent = 'タスクを取得できませんでした。再読み込みしてください。';
-                }
+                window.location.href = '{% url "login" %}';
             }
         });
     </script>
