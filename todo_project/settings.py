@@ -26,9 +26,8 @@ def env_list(name, default=None):
     return [p.strip() for p in raw.split(",") if p.strip()]
 
 # Core -------------------------------------------------------------
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
-if not SECRET_KEY:
-    raise RuntimeError("DJANGO_SECRET_KEY environment variable is required")
+SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-me")
+
 
 DEBUG = True
 
