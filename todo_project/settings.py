@@ -5,6 +5,7 @@ Settings: 環境変数
 """
 
 import os
+import urllib.parse as up
 from pathlib import Path
 from datetime import timedelta
 from corsheaders.defaults import default_headers
@@ -25,7 +26,10 @@ def env_list(name, default=None):
     return [p.strip() for p in raw.split(",") if p.strip()]
 
 # Core -------------------------------------------------------------
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-secret-key-change-me")
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("DJANGO_SECRET_KEY environment variable is required")
+
 DEBUG = True
 
 TIME_ZONE = os.environ.get("TIME_ZONE", "UTC")
@@ -109,39 +113,33 @@ TEMPLATES = [
 # Database (sqlite by default; DATABASE_URL optional) -------------
 DATABASES = {}
 DATABASE_URL = os.environ.get("DATABASE_URL")
+
 if DATABASE_URL:
-    # try to use dj-database-url if available; otherwise try a minimal postgres parse
     try:
-        import dj_database_url  # type: ignore
-        DATABASES["default"] = dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=not DEBUG)
-    except Exception:
-        # minimal fallback for common postgres URL patterns, otherwise sqlite
+        import dj_database_url
+        DATABASES["default"] = dj_database_url.parse(
+            DATABASE_URL, conn_max_age=600, ssl_require=not DEBUG
+        )
+    except ImportError:
         if DATABASE_URL.startswith("postgres"):
-            # naive parse, works for typical postgres://user:pw@host:port/dbname
-            import urllib.parse as up
             p = up.urlparse(DATABASE_URL)
-            user = p.username
-            password = p.password
-            host = p.hostname
-            port = p.port or 5432
-            name = p.path.lstrip("/")
             DATABASES["default"] = {
                 "ENGINE": "django.db.backends.postgresql",
-                "NAME": name,
-                "USER": user,
-                "PASSWORD": password,
-                "HOST": host,
-                "PORT": port,
+                "NAME": p.path.lstrip("/"),
+                "USER": p.username,
+                "PASSWORD": p.password,
+                "HOST": p.hostname,
+                "PORT": p.port or 5432,
             }
         else:
             DATABASES["default"] = {
                 "ENGINE": "django.db.backends.sqlite3",
-                "NAME": BASE_DIR / "db.sqlite3",
+                "NAME": str(BASE_DIR / "db.sqlite3"),
             }
 else:
     DATABASES["default"] = {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": str(BASE_DIR / "db.sqlite3"),
     }
 
 # Password validators ---------------------------------------------
@@ -171,7 +169,6 @@ SIMPLE_JWT = {
 
 # Internationalization -------------------------------------------
 USE_I18N = True
-USE_L10N = True
 USE_TZ = True
 LANGUAGE_CODE = LANGUAGE_CODE
 TIME_ZONE = TIME_ZONE
