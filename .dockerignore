@@ -1,0 +1,14 @@
+# .dockerignore
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+.env
+.vscode
+.git
+.gitignore
+staticfiles
+node_modules
