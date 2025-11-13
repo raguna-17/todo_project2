@@ -43,7 +43,7 @@ else:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 # CSRF trusted origins (must include scheme: https://your-domain.com)
-CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
+CSRF_TRUSTED_ORIGINS = ['http://localhost:8000']
 
 # CORS configuration - prefer explicit list in env; fallback to dev allowances
 env_cors = env_list("CORS_ALLOWED_ORIGINS")
@@ -52,7 +52,7 @@ if env_cors:
     CORS_ALLOW_ALL_ORIGINS = False
 else:
     # development-friendly fallback; DO NOT use in production
-    CORS_ALLOWED_ORIGINS = []
+    CORS_ALLOWED_ORIGINS = ['http://localhost:8000']
     CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 # Basic apps & middleware -----------------------------------------
