@@ -9,6 +9,7 @@ import urllib.parse as up
 from pathlib import Path
 from datetime import timedelta
 from corsheaders.defaults import default_headers
+import dj_database_url
 
 # Helpers ----------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,10 +27,13 @@ def env_list(name, default=None):
     return [p.strip() for p in raw.split(",") if p.strip()]
 
 # Core -------------------------------------------------------------
-SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-me")
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable is not set!")
 
+# 環境変数でDEBUGを制御。デフォルトは開発用にTrue。
+DEBUG = os.environ.get("DEBUG", "True").lower() in ("1", "true", "yes", "on")
 
-DEBUG = True
 
 TIME_ZONE = os.environ.get("TIME_ZONE", "UTC")
 LANGUAGE_CODE = "en-us"
@@ -42,8 +46,13 @@ if env_hosts:
 else:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
-# CSRF trusted origins (must include scheme: https://your-domain.com)
+# ローカル開発用
 CSRF_TRUSTED_ORIGINS = ['http://localhost:8000']
+
+# 本番用を追加
+if not DEBUG:
+    CSRF_TRUSTED_ORIGINS += ['https://todo-project2-1.onrender.com']
+
 
 # CORS configuration - prefer explicit list in env; fallback to dev allowances
 env_cors = env_list("CORS_ALLOWED_ORIGINS")
@@ -111,34 +120,21 @@ TEMPLATES = [
 
 # Database (sqlite by default; DATABASE_URL optional) -------------
 DATABASES = {}
-DATABASE_URL = os.environ.get("DATABASE_URL")
 
+DATABASE_URL = os.environ.get("DATABASE_URL")
 if DATABASE_URL:
-    try:
-        import dj_database_url
-        DATABASES["default"] = dj_database_url.parse(
-            DATABASE_URL, conn_max_age=600, ssl_require=not DEBUG
-        )
-    except ImportError:
-        if DATABASE_URL.startswith("postgres"):
-            p = up.urlparse(DATABASE_URL)
-            DATABASES["default"] = {
-                "ENGINE": "django.db.backends.postgresql",
-                "NAME": p.path.lstrip("/"),
-                "USER": p.username,
-                "PASSWORD": p.password,
-                "HOST": p.hostname,
-                "PORT": p.port or 5432,
-            }
-        else:
-            DATABASES["default"] = {
-                "ENGINE": "django.db.backends.sqlite3",
-                "NAME": str(BASE_DIR / "db.sqlite3"),
-            }
+    DATABASES["default"] = dj_database_url.parse(
+        DATABASE_URL, conn_max_age=600, ssl_require=not DEBUG
+    )
 else:
+    # ローカル開発用 fallback
     DATABASES["default"] = {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": str(BASE_DIR / "db.sqlite3"),
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("DB_NAME", "your_db_name"),
+        "USER": os.environ.get("DB_USER", "your_user"),
+        "PASSWORD": os.environ.get("DB_PASSWORD", "your_password"),
+        "HOST": os.environ.get("DB_HOST", "localhost"),
+        "PORT": os.environ.get("DB_PORT", "5432"),
     }
 
 # Password validators ---------------------------------------------

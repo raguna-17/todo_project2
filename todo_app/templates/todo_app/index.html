@@ -1,5 +1,4 @@
-<!-- todo_app/index.html -->
-
+<!-- index.html -->
 {% load static %}
 <!DOCTYPE html>
 <html lang="ja">
@@ -7,6 +6,8 @@
 <head>
     <meta charset="utf-8">
     <title>Todoアプリ</title>
+
+    <!-- JS の読み込み順に注意 -->
     <script defer src="{% static 'js/auth.js' %}"></script>
     <script defer src="{% static 'js/api.js' %}"></script>
     <script defer src="{% static 'js/tasks.js' %}"></script>
@@ -15,6 +16,7 @@
 <body>
     <h1>ToDoアプリ</h1>
 
+    <!-- タスク追加フォーム -->
     <form id="task-form">
         <input type="text" id="title" placeholder="タスク名" required>
         <input type="datetime-local" id="deadline" required>
@@ -26,14 +28,16 @@
         <button type="submit">追加</button>
     </form>
 
+    <!-- タスク一覧表示 -->
     <h2>タスク一覧</h2>
     <ul id="task-list"></ul>
 
+    <!-- エラー表示 -->
     <div id="error-box" style="color:red; margin:10px 0;"></div>
 
     <script>
-        // トークンが無ければログインページへ（fetchTasksの呼び出しは tasks.js に任せる）
         document.addEventListener('DOMContentLoaded', () => {
+            // アクセストークンが無ければログインページにリダイレクト
             const token = localStorage.getItem('accessToken');
             if (!token) {
                 console.warn('アクセストークンがありません。ログインページにリダイレクトします。');

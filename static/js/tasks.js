@@ -71,27 +71,38 @@
 
     async function handleFormSubmit(e) {
         e.preventDefault();
+
         const title = document.getElementById('title')?.value.trim() || '';
         const deadlineRaw = document.getElementById('deadline')?.value || '';
         const priority = document.getElementById('priority')?.value || '';
 
-        if (!title || !deadlineRaw) { alert('タイトルと締切を入力してください'); return; }
+        if (!title || !deadlineRaw || !priority) {
+            alert('タイトル、締切、優先度を入力してください');
+            return;
+        }
 
-        const payload = { title, deadline: new Date(deadlineRaw).toISOString(), priority };
+        const payload = {
+            title,
+            deadline: new Date(deadlineRaw).toISOString(),
+            priority,
+            completed: false
+        };
 
         try {
-            const res = await apiFetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+            const res = await apiFetch(API_URL, { method: 'POST', body: payload });
             if (res.status === 401) {
                 showError('認証が切れました。再ログインしてください。');
                 window.location.href = '/login/';
                 return;
             }
+
             const body = await safeJson(res);
             if (!res.ok) {
                 console.error('create failed', res.status, body);
                 alert('タスク追加に失敗しました: ' + (body.detail || JSON.stringify(body)));
                 return;
             }
+
             formEl?.reset();
             await fetchTasks();
         } catch (err) {
@@ -106,7 +117,7 @@
         try {
             const res = await apiFetch(API_URL + id + '/', {
                 method: 'PATCH',
-                body: JSON.stringify({ completed: e.target.checked })
+                body: { completed: e.target.checked }  // 文字列化は apiFetch に任せる
             });
             if (!res.ok) {
                 const body = await safeJson(res);
@@ -127,4 +138,5 @@
 
     window.fetchTasks = fetchTasks;
 })();
+
 
