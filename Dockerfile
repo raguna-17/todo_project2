@@ -11,7 +11,8 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     pkg-config \
     python3-dev \
-    libatlas-base-dev \
+    libatlas3-base \
+    libatlas3-base-dev \
     gfortran \
     && rm -rf /var/lib/apt/lists/*
 
