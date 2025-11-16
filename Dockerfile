@@ -3,17 +3,22 @@
 # ベースイメージ
 FROM python:3.13-slim
 
-# 必要なシステムパッケージ（psycopg2-binaryを使うなら libpq-dev は不要）
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential gcc \
-    && rm -rf /var/lib/apt/lists/*
-
+# 作業ディレクトリを先に作る
 WORKDIR /app
 
+# システムパッケージのインストール
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    pkg-config \
+    python3-dev \
+    libatlas-base-dev \
+    gfortran \
+    && rm -rf /var/lib/apt/lists/*
+
 # 依存を先にコピーしてキャッシュ効かせる
-COPY requirements.txt /app/
+COPY requirements_clean.txt /app/requirements.txt
 RUN python -m pip install --upgrade pip setuptools wheel \
- && pip install -r /app/requirements.txt
+    && pip install -r /app/requirements.txt
 
 # アプリ本体をコピー
 COPY . /app
@@ -21,7 +26,7 @@ COPY . /app
 ENV PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=todo_project.settings
 
-# 静的ファイル収集（ビルド時にエラーが出るなら最後に || true を付ける）
+# 静的ファイル収集（ビルド時にエラーが出る場合は || true を付ける）
 RUN python manage.py collectstatic --noinput || true
 
 EXPOSE 8000

@@ -1,14 +1,35 @@
 # .dockerignore
+
+# 仮想環境
 .venv
 venv
+
+# Python キャッシュ
 __pycache__
 *.pyc
 *.pyo
 *.pyd
+
+# データベース
 *.sqlite3
+
+# 環境設定
 .env
+
+# IDE / エディタ
 .vscode
+
+# Git
 .git
 .gitignore
+
+# ビルド / 静的ファイル
 staticfiles
+media
+
+# Node.js
 node_modules
+
+# OS 固有ファイル
+.DS_Store
+Thumbs.db
