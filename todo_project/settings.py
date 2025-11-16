@@ -60,9 +60,15 @@ if env_cors:
     CORS_ALLOWED_ORIGINS = env_cors
     CORS_ALLOW_ALL_ORIGINS = False
 else:
-    # development-friendly fallback; DO NOT use in production
-    CORS_ALLOWED_ORIGINS = ['http://localhost:8000']
-    CORS_ALLOW_ALL_ORIGINS = DEBUG
+    # 開発用フォールバック
+    if DEBUG:
+        CORS_ALLOWED_ORIGINS = ['http://localhost:8000']
+        CORS_ALLOW_ALL_ORIGINS = True
+    else:
+        # 本番は必ず環境変数から取得する
+        raise ValueError("CORS_ALLOWED_ORIGINS must be set in production")
+
+
 
 # Basic apps & middleware -----------------------------------------
 INSTALLED_APPS = [
