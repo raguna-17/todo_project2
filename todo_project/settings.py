@@ -32,7 +32,8 @@ if not SECRET_KEY:
     raise ValueError("SECRET_KEY environment variable is not set!")
 
 # 環境変数でDEBUGを制御。デフォルトは開発用にTrue。
-DEBUG = os.environ.get("DEBUG", "True").lower() in ("1", "true", "yes", "on")
+DEBUG = env_bool("DEBUG", default=False)
+
 
 
 TIME_ZONE = os.environ.get("TIME_ZONE", "UTC")
@@ -46,12 +47,20 @@ if env_hosts:
 else:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
-# ローカル開発用
-CSRF_TRUSTED_ORIGINS = ['http://localhost:8000']
+# .env から取得（カンマ区切りで複数指定可能）
+CSRF_TRUSTED_ORIGINS = env_list(
+    "CSRF_TRUSTED_ORIGINS",
+    default=[]  # デフォルトは空にして、ローカルは下で追加
+)
 
-# 本番用を追加
-if not DEBUG:
-    CSRF_TRUSTED_ORIGINS += ['https://todo-project2-1.onrender.com']
+# ローカル開発用フォールバック
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS += ['http://localhost:8000']
+
+# 本番環境で設定されていない場合は例外
+if not DEBUG and not CSRF_TRUSTED_ORIGINS:
+    raise ValueError("CSRF_TRUSTED_ORIGINS must be set in production")
+
 
 
 # CORS configuration - prefer explicit list in env; fallback to dev allowances

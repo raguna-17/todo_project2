@@ -1,5 +1,6 @@
 #Dockerfile
 
+
 # ベースイメージ
 FROM python:3.13-slim
 
@@ -23,19 +24,19 @@ RUN pip install numpy pandas
 COPY requirements_clean.txt /app/requirements.txt
 RUN pip install -r /app/requirements.txt
 
-
 # アプリ本体をコピー
 COPY . /app
+
+# 起動スクリプトをコピーして実行権限付与
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
 
 # 環境変数
 ENV PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=todo_project.settings
 
-# 静的ファイル収集（ビルド時にエラーが出る場合は || true で無視）
-RUN python manage.py collectstatic --noinput || true
-
+# ポート公開（Docker ローカル用）
 EXPOSE 8000
 
-# gunicorn で起動
-CMD ["gunicorn", "todo_project.wsgi:application", "--bind", "0.0.0.0:${PORT}", "--workers", "3"]
-
+# CMD をスクリプトに変更
+CMD ["./start.sh"]
