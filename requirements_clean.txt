@@ -1,5 +1,6 @@
 ﻿#requirements_clean.txt
-# numpy, pandas は事前に Dockerfile で wheel でインストール済み
+
+# numpy, pandas は Dockerfile で先に wheel でインストール済み
 # ここにはそれ以外の依存のみ記載
 
 amqp==5.3.1
@@ -30,7 +31,3 @@ vine==5.1.0
 wcwidth==0.2.14
 whitenoise==6.11.0
 psycopg[binary]>=3.2.12
-
-
-
-

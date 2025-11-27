@@ -47,11 +47,9 @@ if env_hosts:
 else:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
-# .env から取得（カンマ区切りで複数指定可能）
-CSRF_TRUSTED_ORIGINS = env_list(
-    "CSRF_TRUSTED_ORIGINS",
-    default=[]  # デフォルトは空にして、ローカルは下で追加
-)
+# .env から取得し、カンマで分割してリストにする
+CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in CSRF_TRUSTED_ORIGINS.split(",") if origin]
 
 # ローカル開発用フォールバック
 if DEBUG:

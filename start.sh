@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# .env が存在すれば読み込む
+if [ -f .env ]; then
+  export $(grep -v '^#' .env | xargs)
+fi
+
 # 環境変数が設定されているか確認
 if [ -z "$SECRET_KEY" ]; then
   echo "ERROR: SECRET_KEY environment variable is not set!"
